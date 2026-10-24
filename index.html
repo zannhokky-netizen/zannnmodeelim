@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZANN TikTok Live Overlay</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #2a2a2a;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #fe2c55;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #status-box {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        #chat-container {
+            margin-top: 20px;
+            height: 250px;
+            overflow-y: auto;
+            background: #252525;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .chat-item {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        .gift-item {
+            color: #ffd700;
+            font-weight: bold;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 5px;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ZANN Live Connector</h2>
+    
+    <label for="inputUsername">Username TikTok:</label>
+    <input type="text" id="inputUsername" placeholder="zannagcorrjir (tanpa @)">
+    <button onclick="hubungkanTikTok()">Connect to Live</button>
+
+    <div id="status-box">Status: Belum Terhubung</div>
+
+    <h3>Aktivitas Live</h3>
+    <div id="chat-container"></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DISINI TEMPAT SCRIPT SOCKET.IO DAN LOGIKA KAMU DILETAKKAN   -->
+<!-- ============================================================ -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    // GANTI URL DI BAWAH INI DENGAN URL BACKEND RENDER / RAILWAY KAMU
+    const socket = io('https://zann-backend.onrender.com'); 
+
+    function hubungkanTikTok() {
+        const username = document.getElementById('inputUsername').value;
+        if (!username) {
+            alert("Masukkan username TikTok terlebih dahulu!");
+            return;
+        }
+        
+        document.getElementById('status-box').innerText = "Status: Menghubungkan...";
+        document.getElementById('status-box').style.color = "#ffca28";
+
+        // Kirim event ke backend Node.js kamu
+        socket.emit('set-username', username);
+    }
+
+    // 1. Respon ketika berhasil terhubung
+    socket.on('tiktok-connected', (data) => {
+        document.getElementById('status-box').innerText = `Status: Terhubung ke @${data.username}`;
+        document.getElementById('status-box').style.color = "#00e676";
+    });
+
+    // 2. Respon jika gagal terhubung
+    socket.on('tiktok-error', (err) => {
+        document.getElementById('status-box').innerText = `Status: Gagal (${err.message})`;
+        document.getElementById('status-box').style.color = "#ff5252";
+    });
+
+    // 3. Tangkap Chat Masuk
+    socket.on('tiktok-chat', (data) => {
+        const container = document.getElementById('chat-container');
+        const chatElement = document.createElement('div');
+        chatElement.className = 'chat-item';
+        chatElement.innerHTML = `<strong>${data.username}:</strong> ${data.comment}`;
+        container.appendChild(chatElement);
+        container.scrollTop = container.scrollHeight; // Auto scroll ke bawah
+    });
+
+    // 4. Tangkap Gift Masuk
+    socket.on('tiktok-gift', (data) => {
+        const container = document.getElementById('chat-container');
+        const giftElement = document.createElement('div');
+        giftElement.className = 'gift-item';
+        giftElement.innerHTML = `🎁 <strong>${data.username}</strong> mengirim ${data.giftName} (${data.diamondCount} Diamond)`;
+        container.appendChild(giftElement);
+        container.scrollTop = container.scrollHeight; // Auto scroll ke bawah
+    });
+
+    // 5. Jika Live Berakhir
+    socket.on('tiktok-disconnected', (data) => {
+        document.getElementById('status-box').innerText = "Status: Live Berakhir / Terputus";
+        document.getElementById('status-box').style.color = "#ff5252";
+    });
+</script>
+
+</body>
+</html>
